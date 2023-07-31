@@ -41,19 +41,15 @@ import lazypredict
 from lazypredict.Supervised import LazyClassifier
 import numpy as np
 import pandas as pd
-import xgboost as xgb
 import seaborn as sns
 import matplotlib.pyplot as plt
-import plotly.express as px
-from xgboost import XGBRegressor
+from matplotlib.gridspec import GridSpec
 from xgboost import XGBClassifier
-import matplotlib.pyplot as pyplot
-from lightgbm import LGBMClassifier
-from sklearn.preprocessing import MinMaxScaler, StandardScaler, LabelEncoder
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_validate
-from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
-from sklearn.metrics import roc_auc_score, f1_score, precision_score, recall_score, accuracy_score, auc, roc_curve
-from yellowbrick.classifier import ROCAUC, ClassificationReport, ClassificationScoreVisualizer
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score
+from yellowbrick.classifier import ROCAUC, ClassificationReport
 import warnings
 from sklearn.exceptions import ConvergenceWarning
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -195,28 +191,18 @@ plt.title('Correlation Heatmap')
 plt.show()
 
 # Tüm Değişkenler vs Target Değişken Analizi
-featuresAndTarget = ['Age','Experience','Income','Family','CCAvg','Education','Mortgage','Personal Loan','Securities Account','CD Account' ,'Online' , 'CreditCard' ]
-features = ['Age',
-            'Experience',
-            'Income',
-            'Family',
-            'CCAvg',
-            'Education',
-            'Mortgage',
-            'Securities Account',
-            'CD Account',
-            'Online',
-            'CreditCard']
+featuresAndTarget = ['Age', 'Experience', 'Income', 'CCAvg', 'Mortgage','Personal Loan']
+features = ['Age', 'Experience', 'Income', 'CCAvg', 'Mortgage']
 
 target = 'Personal Loan'
 
-fig, ax = plt.subplots(nrows=6, ncols=2, figsize=(15,15), dpi=100)
+fig, ax = plt.subplots(nrows=4, ncols=2, figsize=(15,15), dpi=100)
 
 for i in range(len(features)):
     x = i//2
-    y = i%2
+    y = i % 2
     sns.countplot(x=features[i] , data=df , ax=ax[x,y])
-    ax[x,y].set_xlabel(features[i], size = 12)
+    ax[x,y].set_xlabel(features[i], size = 8)
     ax[x,y].set_title('{} vs. {}'.format(target, features[i]), size = 15)
 
 plt.show()
@@ -234,6 +220,32 @@ def cat_summary(dataframe, col_name, plot=False):
 for col in cat_cols:
     cat_summary(df, col, True)
 
+def cat_summary(dataframe, col_name):
+    summary_df = pd.DataFrame({
+        col_name: dataframe[col_name].value_counts(),
+        "Ratio": 100 * dataframe[col_name].value_counts() / len(dataframe)
+    })
+    sns.countplot(x=dataframe[col_name], data=dataframe)
+    plt.xticks(rotation=90)
+    return summary_df
+
+outputs = []
+
+plt.figure(figsize=(15, 12))
+
+for i, col in enumerate(cat_cols):
+    plt.subplot(3, 3, i+1)
+    summary_df = cat_summary(df, col)
+    outputs.append(summary_df)
+
+plt.tight_layout()
+
+fig, ax = plt.subplots()
+ax.axis('off')
+ax.table(cellText=outputs[0].values, colLabels=outputs[0].columns, cellLoc='center', loc='center')
+plt.show()
+
+
 # Sayısal Değişken Analizi
 def num_summary(dataframe, numerical_col, plot=False):
     quantiles = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.90, 0.95, 0.99]
@@ -248,6 +260,23 @@ def num_summary(dataframe, numerical_col, plot=False):
 for col in num_cols:
     num_summary(df, col, True)
 
+
+def num_summary2(dataframe, numerical_col, ax=None, plot=False):
+    quantiles = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.90, 0.95, 0.99]
+    print(dataframe[numerical_col].describe(quantiles).T)
+
+    if plot and ax:
+        dataframe[numerical_col].hist(bins=50, ax=ax)
+        ax.set_xlabel(numerical_col)
+        ax.set_title(numerical_col)
+
+fig, axs = plt.subplots(len(num_cols), 1, figsize=(9, 5 * len(num_cols)))
+
+for i, col in enumerate(num_cols):
+    num_summary2(df, col, ax=axs[i], plot=True)
+
+plt.tight_layout()
+plt.show()
 #Distrubiton Analysis
 def num_plot(dataframe, col):
     color = "#85b96f"
@@ -266,6 +295,25 @@ def num_plot(dataframe, col):
 for col in num_cols:
     num_plot(df,col)
 
+
+def num_plot(dataframe, col, ax):
+    color = "#85b96f"
+    sns.histplot(x=dataframe[col], color=color, label=col, ax=ax)
+
+    # Plotting the mean age line
+    mean = dataframe[col].mean()
+    ax.axvline(x=mean, color='black', linestyle="--", label=f"Mean: {mean:.2f}")
+
+    ax.legend()
+    ax.set_title(f'Distribution - {col}')
+
+fig, axs = plt.subplots(len(num_cols), 1, figsize=(10, 5 * len(num_cols)))
+
+for i, col in enumerate(num_cols):
+    num_plot(df, col, ax=axs[i])
+
+plt.tight_layout()
+plt.show()
 
 def label_encoder(dataframe, binary_col):
     labelencoder = LabelEncoder()
@@ -347,13 +395,3 @@ plt.figtext(0.05, -0.05, "Observation: Logistic Regression performed well with a
 
 plt.tight_layout()
 plt.show()
-
-
-
-
-
-
-
-
-
-
